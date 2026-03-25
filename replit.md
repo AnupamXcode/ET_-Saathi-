@@ -2,7 +2,7 @@
 
 ## Overview
 
-A production-ready AI-powered financial decision and scenario simulation engine. Think Bloomberg Terminal + AI analyst. Users can analyze news, run what-if scenarios, get investment decisions, and simulate portfolio outcomes — all powered by Gemini AI.
+A production-ready AI-powered financial decision and scenario simulation engine. Premium deep-midnight blue UI with violet-to-cyan gradient accents and gold highlights. Features live market data (Yahoo Finance proxy, refreshes every 30s), AI-powered news analysis, what-if scenario simulation, Buy/Hold/Avoid decision engine, wealth simulation, and portfolio management — all powered by Gemini 2.5 Flash.
 
 ## Stack
 

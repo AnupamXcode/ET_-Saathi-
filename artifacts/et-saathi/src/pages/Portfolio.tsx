@@ -1,135 +1,173 @@
 import React from 'react';
-import { useProfile, useUpdateProfile } from '../hooks/use-analysis';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Briefcase, AlertCircle } from 'lucide-react';
+import { useProfile } from '../hooks/use-analysis';
+import { Briefcase, TrendingUp, TrendingDown, PieChart as PieIcon } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { motion } from 'framer-motion';
 
-const COLORS = ['hsl(var(--primary))', '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e'];
+const PIE_COLORS = ['#8B5CF6', '#06B6D4', '#F59E0B', '#10B981', '#F43F5E', '#A78BFA'];
+
+const MOCK_PORTFOLIO = [
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries', quantity: 50, avgPrice: 2400, currentPrice: 2950, allocation: 40 },
+  { symbol: 'TCS.NS',      name: 'Tata Consultancy',   quantity: 20, avgPrice: 3100, currentPrice: 3800, allocation: 25 },
+  { symbol: 'HDFCBANK.NS', name: 'HDFC Bank',          quantity: 100, avgPrice: 1550, currentPrice: 1480, allocation: 20 },
+  { symbol: 'INFY.NS',     name: 'Infosys',            quantity: 40, avgPrice: 1400, currentPrice: 1650, allocation: 15 },
+];
 
 export default function Portfolio() {
   const { data: profile, isLoading } = useProfile();
-  
-  // Mock Data if API missing
-  const portfolioData = profile?.portfolio || [
-    { symbol: 'RELIANCE.NS', name: 'Reliance Ind', quantity: 50, avgPrice: 2400, currentPrice: 2950, allocation: 40 },
-    { symbol: 'TCS.NS', name: 'Tata Consultancy', quantity: 20, avgPrice: 3100, currentPrice: 3800, allocation: 25 },
-    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank', quantity: 100, avgPrice: 1550, currentPrice: 1480, allocation: 20 },
-    { symbol: 'INFY.NS', name: 'Infosys', quantity: 40, avgPrice: 1400, currentPrice: 1650, allocation: 15 },
-  ];
+  const portfolio = profile?.portfolio ?? MOCK_PORTFOLIO;
 
-  const totalValue = portfolioData.reduce((acc, stock) => acc + (stock.quantity * (stock.currentPrice || stock.avgPrice)), 0);
-  const totalInvested = portfolioData.reduce((acc, stock) => acc + (stock.quantity * stock.avgPrice), 0);
-  const totalPnl = totalValue - totalInvested;
-  const pnlPercent = (totalPnl / totalInvested) * 100;
+  const totalValue    = portfolio.reduce((a: number, s: any) => a + s.quantity * (s.currentPrice ?? s.avgPrice), 0);
+  const totalInvested = portfolio.reduce((a: number, s: any) => a + s.quantity * s.avgPrice, 0);
+  const totalPnl      = totalValue - totalInvested;
+  const pnlPct        = (totalPnl / totalInvested) * 100;
+  const positive      = totalPnl >= 0;
+
+  const pieData = portfolio.map((s: any) => ({
+    name: s.symbol.replace('.NS', ''),
+    value: s.allocation ?? Math.round((s.quantity * (s.currentPrice ?? s.avgPrice) / totalValue) * 100),
+  }));
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="px-3 py-2 rounded-xl text-sm" style={{ background: '#0D1226', border: '1px solid rgba(139,92,246,0.25)' }}>
+        <p className="font-semibold text-foreground">{payload[0].name}</p>
+        <p className="text-violet-400 font-bold">{payload[0].value}%</p>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <header className="flex justify-between items-end">
+    <div className="space-y-6 pb-4">
+      {/* Header */}
+      <header className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <Briefcase className="text-primary" /> My Portfolio
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage holdings to get personalized impact analysis from the Scenario Engine.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.1))', border: '1px solid rgba(139,92,246,0.3)' }}
+            >
+              <Briefcase className="w-4 h-4 text-violet-400" />
+            </div>
+            <h1 className="text-3xl font-display font-bold text-gradient">My Portfolio</h1>
+          </div>
+          <p className="text-muted-foreground ml-12">Manage holdings for personalized scenario analysis.</p>
         </div>
-        <Button variant="outline">Sync Broker</Button>
+        <button className="text-sm px-4 py-2 rounded-xl transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(200,200,255,0.7)' }}
+        >
+          Sync Broker
+        </button>
       </header>
 
-      <div className="grid md:grid-cols-4 gap-6">
-        <Card className="glass-panel border-white/5 p-6">
-          <p className="text-sm text-muted-foreground mb-1">Total Current Value</p>
-          <h2 className="text-3xl font-mono font-bold">{formatCurrency(totalValue)}</h2>
-          <div className={`mt-2 flex items-center gap-2 text-sm font-bold ${totalPnl >= 0 ? 'text-positive' : 'text-destructive'}`}>
-            {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)} ({pnlPercent.toFixed(2)}%)
-          </div>
-        </Card>
-        <Card className="glass-panel border-white/5 p-6">
-          <p className="text-sm text-muted-foreground mb-1">Total Invested</p>
-          <h2 className="text-3xl font-mono font-bold text-foreground/80">{formatCurrency(totalInvested)}</h2>
-        </Card>
-        <Card className="glass-panel border-white/5 p-6 md:col-span-2 flex items-center gap-4 bg-primary/5 border-primary/20">
-          <AlertCircle className="w-10 h-10 text-primary shrink-0" />
-          <div>
-            <h3 className="font-semibold text-primary">Optimize Your Returns</h3>
-            <p className="text-sm text-muted-foreground">Run the Scenario Engine with your portfolio connected to see exact Rupee impact of global events.</p>
-          </div>
-        </Card>
+      <div className="divider-gradient opacity-40" />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Portfolio Value',  val: formatCurrency(totalValue),    sub: null },
+          { label: 'Total Invested',   val: formatCurrency(totalInvested), sub: null },
+          { label: 'Total P&L',        val: `${positive ? '+' : ''}${formatCurrency(totalPnl)}`, sub: null, pos: positive },
+          { label: 'Return',           val: `${pnlPct.toFixed(2)}%`, sub: null, pos: positive },
+        ].map(({ label, val, pos }, i) => (
+          <motion.div key={label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.07 }}
+            className="rounded-2xl p-4"
+            style={{
+              background: pos === undefined ? 'rgba(255,255,255,0.025)' : pos ? 'rgba(16,185,129,0.08)' : 'rgba(244,63,94,0.08)',
+              border: `1px solid ${pos === undefined ? 'rgba(255,255,255,0.07)' : pos ? 'rgba(16,185,129,0.2)' : 'rgba(244,63,94,0.2)'}`,
+            }}
+          >
+            <p className="text-xs text-muted-foreground mb-1">{label}</p>
+            <p className={`font-mono-data font-bold text-xl ${pos === undefined ? 'text-foreground' : pos ? 'text-positive' : 'text-destructive'}`}>
+              {val}
+            </p>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card className="glass-panel md:col-span-2">
-          <CardHeader>
-            <CardTitle>Holdings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th className="px-4 py-3 rounded-tl-lg">Stock</th>
-                    <th className="px-4 py-3 text-right">Qty</th>
-                    <th className="px-4 py-3 text-right">Avg Price</th>
-                    <th className="px-4 py-3 text-right">LTP</th>
-                    <th className="px-4 py-3 text-right rounded-tr-lg">P&L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {portfolioData.map((stock, i) => {
-                    const pnl = (stock.currentPrice! - stock.avgPrice) * stock.quantity;
-                    const pnlP = ((stock.currentPrice! - stock.avgPrice) / stock.avgPrice) * 100;
-                    return (
-                      <tr key={stock.symbol} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-4">
-                          <div className="font-bold text-foreground">{stock.symbol}</div>
-                          <div className="text-xs text-muted-foreground">{stock.name}</div>
-                        </td>
-                        <td className="px-4 py-4 text-right font-mono">{stock.quantity}</td>
-                        <td className="px-4 py-4 text-right font-mono">{formatCurrency(stock.avgPrice)}</td>
-                        <td className="px-4 py-4 text-right font-mono">{formatCurrency(stock.currentPrice!)}</td>
-                        <td className={`px-4 py-4 text-right font-mono font-bold ${pnl >= 0 ? 'text-positive' : 'text-destructive'}`}>
-                          {pnl >= 0 ? '+' : ''}{formatCurrency(pnl)}<br/>
-                          <span className="text-xs">({pnlP.toFixed(2)}%)</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Holdings + Pie */}
+      <div className="grid md:grid-cols-3 gap-5">
+        {/* Holdings Table */}
+        <div className="md:col-span-2 rounded-2xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <h3 className="font-display font-semibold text-sm text-foreground">Holdings</h3>
+          </div>
+          <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            {portfolio.map((stock: any, i: number) => {
+              const currPrice = stock.currentPrice ?? stock.avgPrice;
+              const currValue = stock.quantity * currPrice;
+              const pnl       = currValue - stock.quantity * stock.avgPrice;
+              const pnlP      = (pnl / (stock.quantity * stock.avgPrice)) * 100;
+              const pos       = pnl >= 0;
+              return (
+                <motion.div key={stock.symbol} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
+                  className="grid grid-cols-4 px-5 py-3.5 items-center text-sm hover:bg-white/[0.02] transition-colors"
+                >
+                  <div>
+                    <p className="font-mono-data font-semibold text-foreground">{stock.symbol.replace('.NS','')}</p>
+                    <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono-data text-foreground">{stock.quantity}</p>
+                    <p className="text-xs text-muted-foreground">@{formatCurrency(stock.avgPrice)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono-data text-foreground">{formatCurrency(currValue)}</p>
+                    <p className="text-xs text-muted-foreground">{stock.allocation ?? Math.round((currValue / totalValue)*100)}%</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold font-mono-data ${pos ? 'text-positive' : 'text-destructive'}`}>
+                      {pos ? '+' : ''}{formatCurrency(pnl)}
+                    </p>
+                    <p className={`text-xs ${pos ? 'text-positive' : 'text-destructive'} opacity-80`}>
+                      {pos ? '+' : ''}{pnlP.toFixed(2)}%
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
 
-        <Card className="glass-panel">
-          <CardHeader>
-            <CardTitle>Asset Allocation</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
+        {/* Allocation Pie */}
+        <div className="rounded-2xl p-5 flex flex-col items-center"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div className="flex items-center gap-2 mb-4 self-start">
+            <PieIcon className="w-4 h-4 text-violet-400" />
+            <h3 className="font-display font-semibold text-sm text-foreground">Allocation</h3>
+          </div>
+          <div className="w-full h-52">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={portfolioData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="allocation"
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85}
+                  dataKey="value" paddingAngle={3} strokeWidth={0}
                 >
-                  {portfolioData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {pieData.map((_: any, i: number) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#0D0D0D', borderColor: '#333' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`${value}%`, 'Allocation']}
-                />
-                <Legend verticalAlign="bottom" height={36}/>
+                <RechartsTooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="flex flex-col gap-1.5 w-full mt-2">
+            {pieData.map((d: any, i: number) => (
+              <div key={d.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  <span className="text-muted-foreground">{d.name}</span>
+                </div>
+                <span className="font-mono-data font-semibold text-foreground">{d.value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -6,43 +6,35 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { ConfidenceMeter } from '../components/ui/confidence-meter';
 import { AlertTriangle, Zap, TrendingUp, TrendingDown, Minus, Newspaper } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const SAMPLE_NEWS = `Reliance Industries reported its Q3 FY25 results today, posting a net profit of ₹21,930 crore, beating analyst estimates by 8%. The company's O2C segment showed 12% margin expansion due to favourable crude differentials. Jio Platforms added 8 million subscribers this quarter with ARPU rising to ₹195. The retail segment, however, saw moderated growth of 6% YoY amid cautious consumer spending. Management guided for continued capital expenditure of ₹1.5 lakh crore over the next 3 years in green energy and 5G infrastructure.`;
 
 export default function AnalyzeNews() {
   const [newsText, setNewsText] = useState('');
-  const { mutate: analyze, data: result, isPending, error } = useAnalyzeNews();
+  const { mutate: analyze, data: result, isPending, error, reset } = useAnalyzeNews();
 
   const handleAnalyze = () => {
     if (!newsText.trim()) return;
-    // Mocking API response if backend not connected yet, otherwise call actual mutation
     analyze(newsText);
-  };
-
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
-      case 'bullish': return <TrendingUp className="w-5 h-5" />;
-      case 'bearish': return <TrendingDown className="w-5 h-5" />;
-      default: return <Minus className="w-5 h-5" />;
-    }
   };
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-      case 'bullish': return "text-positive bg-positive/10 border-positive/20";
-      case 'bearish': return "text-destructive bg-destructive/10 border-destructive/20";
-      default: return "text-muted-foreground bg-muted border-border";
+      case 'bullish': return { text: 'text-positive', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' };
+      case 'bearish': return { text: 'text-destructive', bg: 'rgba(244,63,94,0.12)', border: 'rgba(244,63,94,0.3)' };
+      default: return { text: 'text-muted-foreground', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' };
     }
   };
 
-  // Mock Result if API fails for visual testing
-  const displayResult = result || (isPending ? null : error ? {
-    keyEvent: "RBI announces unexpected repo rate hike of 50 basis points.",
+  const displayResult = result ?? (error ? {
+    keyEvent: "RBI announces unexpected repo rate hike of 50 basis points",
     eventType: "Monetary Policy",
     sentiment: "bearish",
     sentimentScore: 25,
     confidence: 88,
-    summary: "The Reserve Bank of India has increased the repo rate by 50 bps to curb inflation. This unexpected move will likely increase borrowing costs for banks, leading to higher interest rates for consumers and potentially slowing economic growth in the short term.",
-    marketImpact: "Broad negative impact expected on interest-rate sensitive sectors like Real Estate, Auto, and Banking. IT might see a neutral to slightly negative impact due to broader market sentiment.",
+    summary: "The Reserve Bank of India has increased the repo rate by 50 bps to curb inflation. This unexpected move will increase borrowing costs for banks, leading to higher interest rates for consumers and potentially slowing economic growth.",
+    marketImpact: "Broad negative impact expected on interest-rate sensitive sectors like Real Estate, Auto, and Banking. IT might see neutral to slightly negative impact due to broader market sentiment.",
     affectedSectors: [
       { name: "Real Estate", impact: "negative", magnitude: 8 },
       { name: "Banking & Financials", impact: "negative", magnitude: 6 },
@@ -56,134 +48,184 @@ export default function AnalyzeNews() {
     ]
   } : null);
 
+  const sc = displayResult ? getSentimentColor(displayResult.sentiment) : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-4">
+      {/* Header */}
       <header>
-        <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
-          <Newspaper className="text-primary" /> News Intelligence
-        </h1>
-        <p className="text-muted-foreground mt-1">Paste financial news or press releases to extract insights and market impact.</p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(6,182,212,0.15))', border: '1px solid rgba(59,130,246,0.3)' }}
+          >
+            <Newspaper className="w-4 h-4 text-blue-400" />
+          </div>
+          <h1 className="text-3xl font-display font-bold" style={{ background: 'linear-gradient(135deg,#60A5FA,#38BDF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            News Intelligence
+          </h1>
+        </div>
+        <p className="text-muted-foreground ml-12">Paste any financial news or press release to extract AI-powered market insights.</p>
       </header>
 
-      <Card className="border-primary/20 bg-black/40">
-        <CardContent className="p-6">
-          <Textarea 
+      <div className="divider-gradient opacity-40" />
+
+      {/* Input Card */}
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(59,130,246,0.18)' }}
+      >
+        <div className="p-5">
+          <Textarea
             placeholder="Paste article text, press release, or earnings call transcript here..."
-            className="min-h-[160px] text-base mb-4 font-mono leading-relaxed"
+            className="min-h-[150px] text-base font-mono leading-relaxed resize-none"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
             value={newsText}
             onChange={(e) => setNewsText(e.target.value)}
           />
-          <div className="flex justify-end">
-            <Button size="lg" onClick={handleAnalyze} isLoading={isPending} disabled={!newsText.trim()}>
-              <Zap className="w-4 h-4 mr-2" /> Extract Intelligence
-            </Button>
+          <div className="flex justify-between items-center mt-4">
+            <button onClick={() => { setNewsText(SAMPLE_NEWS); reset?.(); }}
+              className="text-xs transition-colors hover:text-foreground"
+              style={{ color: 'rgba(200,200,255,0.4)' }}
+            >
+              Load sample news →
+            </button>
+            <button
+              onClick={handleAnalyze}
+              disabled={isPending || !newsText.trim()}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
+                color: '#fff',
+                boxShadow: '0 0 20px rgba(59,130,246,0.3)',
+              }}
+            >
+              {isPending
+                ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                : <Zap className="w-4 h-4" />
+              }
+              {isPending ? 'Analysing…' : 'Extract Intelligence'}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {displayResult && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid md:grid-cols-3 gap-6 mt-8"
-        >
-          {/* Main Insights - Span 2 cols */}
-          <div className="md:col-span-2 space-y-6">
-            <Card className="glass-panel border-primary/30 border-glow-gold relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Badge variant="gold" className="mb-2 uppercase tracking-widest text-[10px]">{displayResult.eventType}</Badge>
-                    <CardTitle className="text-2xl leading-snug">{displayResult.keyEvent}</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed text-lg">{displayResult.summary}</p>
-                
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" /> Market Impact
+      {/* Results */}
+      <AnimatePresence>
+        {displayResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="grid md:grid-cols-3 gap-5"
+          >
+            {/* Left: main insight */}
+            <div className="md:col-span-2 space-y-5">
+              {/* Key Event */}
+              <div className="relative rounded-2xl overflow-hidden p-6"
+                style={{ background: 'linear-gradient(145deg,rgba(139,92,246,0.08),rgba(6,182,212,0.04))', border: '1px solid rgba(139,92,246,0.2)' }}
+              >
+                <div className="absolute top-0 left-0 w-1 h-full rounded-r-full"
+                  style={{ background: 'linear-gradient(180deg,#8B5CF6,#06B6D4)' }}
+                />
+                <Badge style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#A78BFA' }}
+                  className="mb-3 text-[10px] uppercase tracking-widest font-semibold rounded-full"
+                >
+                  {displayResult.eventType}
+                </Badge>
+                <h2 className="text-xl font-display font-bold text-foreground leading-snug mb-4">
+                  {displayResult.keyEvent}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed">{displayResult.summary}</p>
+
+                <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                  <h4 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-violet-400" /> Market Impact
                   </h4>
-                  <p className="text-muted-foreground leading-relaxed">{displayResult.marketImpact}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{displayResult.marketImpact}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card className="glass-panel border-destructive/20 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-destructive/50" />
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="w-5 h-5" /> Risk Warnings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {displayResult.riskWarnings?.map((warning: string, i: number) => (
-                    <li key={i} className="flex items-start gap-3 bg-destructive/5 p-3 rounded-lg border border-destructive/10 text-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                      <span className="text-foreground/90">{warning}</span>
+              {/* Risk Warnings */}
+              <div className="rounded-2xl overflow-hidden p-5"
+                style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)' }}
+              >
+                <div className="absolute top-0 left-0 w-full h-0.5 rounded"
+                  style={{ background: 'linear-gradient(90deg,rgba(244,63,94,0.6),transparent)' }}
+                />
+                <h3 className="flex items-center gap-2 font-display font-semibold text-base mb-4"
+                  style={{ color: '#FB7185' }}
+                >
+                  <AlertTriangle className="w-4 h-4" /> Risk Warnings
+                </h3>
+                <ul className="space-y-2">
+                  {displayResult.riskWarnings?.map((w: string, i: number) => (
+                    <li key={i} className="flex items-start gap-3 text-sm p-3 rounded-xl"
+                      style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.12)' }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-destructive" />
+                      <span className="text-foreground/85">{w}</span>
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
 
-          {/* Right Sidebar - Metrics & Sectors */}
-          <div className="space-y-6">
-            <Card className="glass-panel">
-              <CardHeader className="pb-2 text-center border-b border-white/5">
-                <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">Analysis Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 pb-8 flex flex-col items-center gap-8">
-                <ConfidenceMeter score={displayResult.confidence} size={140} strokeWidth={10} />
-                
-                <div className="w-full text-center">
-                  <span className="text-xs uppercase tracking-widest text-muted-foreground mb-2 block">Sentiment</span>
-                  <div className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border ${getSentimentColor(displayResult.sentiment)}`}>
-                    {getSentimentIcon(displayResult.sentiment)}
-                    <span className="font-bold text-lg uppercase tracking-wide">{displayResult.sentiment}</span>
-                  </div>
+            {/* Right: metrics */}
+            <div className="space-y-5">
+              {/* Confidence + Sentiment */}
+              <div className="rounded-2xl p-5 text-center"
+                style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Analysis Metrics</p>
+                <div className="flex justify-center mb-5">
+                  <ConfidenceMeter score={displayResult.confidence} size={130} strokeWidth={9} />
                 </div>
-              </CardContent>
-            </Card>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Sentiment</p>
+                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold uppercase tracking-wide text-sm"
+                  style={{ background: sc?.bg, border: `1px solid ${sc?.border}` }}
+                >
+                  {displayResult.sentiment === 'bullish' ? <TrendingUp className="w-4 h-4" /> : displayResult.sentiment === 'bearish' ? <TrendingDown className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                  <span className={sc?.text}>{displayResult.sentiment}</span>
+                </div>
+              </div>
 
-            <Card className="glass-panel">
-              <CardHeader>
-                <CardTitle className="text-lg">Sector Impact</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {displayResult.affectedSectors.map((sector: any) => (
-                    <div key={sector.name} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">{sector.name}</span>
-                        <span className={
-                          sector.impact === 'positive' ? 'text-positive' : 
-                          sector.impact === 'negative' ? 'text-destructive' : 'text-muted-foreground'
-                        }>
-                          {sector.impact.toUpperCase()}
+              {/* Sector Impact */}
+              <div className="rounded-2xl p-5"
+                style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <h3 className="font-display font-semibold text-sm mb-4 text-foreground">Sector Impact</h3>
+                <div className="space-y-3">
+                  {displayResult.affectedSectors.map((s: any) => (
+                    <div key={s.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-foreground/90">{s.name}</span>
+                        <span className={s.impact === 'positive' ? 'text-positive' : s.impact === 'negative' ? 'text-destructive' : 'text-muted-foreground'}>
+                          {s.impact.toUpperCase()}
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${
-                            sector.impact === 'positive' ? 'bg-positive' : 
-                            sector.impact === 'negative' ? 'bg-destructive' : 'bg-muted-foreground'
-                          }`}
-                          style={{ width: `${(sector.magnitude / 10) * 100}%` }}
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                        <motion.div
+                          className="h-full rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(s.magnitude / 10) * 100}%` }}
+                          transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                          style={{
+                            background: s.impact === 'positive'
+                              ? 'linear-gradient(90deg,#059669,#34D399)'
+                              : s.impact === 'negative'
+                              ? 'linear-gradient(90deg,#E11D48,#FB7185)'
+                              : 'rgba(255,255,255,0.3)',
+                          }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
-      )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
