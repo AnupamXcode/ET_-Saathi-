@@ -271,13 +271,22 @@ That makes it much more practical, useful, and impactful.
 
 ---
 
-## 📷 Screenshots
+## 📷 Application Preview
 
-> Add your screenshots here for better GitHub presentation.
-
-Example:
-```md
+### 🔐 Login Page
 ![Login Page](./screenshots/login.png)
+
+### 📊 Dashboard
 ![Dashboard](./screenshots/dashboard.png)
+
+### 📰 News Analysis
+![News Analysis](./screenshots/news-analysis.png)
+
+### 🔮 Scenario Simulation
 ![Scenario Simulation](./screenshots/scenario.png)
+
+### 📈 Decision Engine Output
 ![Decision Output](./screenshots/decision.png)
+
+### 👤 User Profile
+![User Profile](./screenshots/profile.png)
