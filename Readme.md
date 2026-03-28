@@ -318,7 +318,7 @@ That makes it much more practical, useful, and impactful.
 # 🔗 Live Project
 
 👉 **Access ET Saathi Here:**  
-[https://11f313ec-242f-4ade-827a-2aff135e65c8-00-2obms23fv08cm.janeway.replit.dev/login](https://beautiful-functionality--24sathawanes.replit.app/login)
+[https://beautiful-functionality--24sathawanes.replit.app/login)
 
 ---
 
